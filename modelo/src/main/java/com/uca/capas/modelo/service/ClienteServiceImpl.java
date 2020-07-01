@@ -28,6 +28,7 @@ import org.springframework.dao.DataAccessException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -42,7 +43,7 @@ public class ClienteServiceImpl implements ClienteService {
 
 	@PersistenceContext(unitName = "modelo-persistence")
 	EntityManager entityManager;
-
+	
 	public List<Cliente> findAll() throws DataAccessException {
 		return clienteRepository.findAll();
 	}
@@ -234,4 +235,73 @@ public class ClienteServiceImpl implements ClienteService {
 
 		return clientes;
 	}
+
+	@Override
+	public int insertClienteAutoId(Cliente c) {
+		// TODO Auto-generated method stub
+		return clienteDao.insertClienteAutoId(c);
+	}
+
+	@Override
+	public void updateCliente(Cliente c) {
+		// TODO Auto-generated method stub
+		clienteDao.updateCliente(c);
+	}
+	
+	@Override
+	public int ejecutarProcJdbc(Integer cliente, Boolean estado) {
+		return clienteDao.ejecutarProcedimientoJdbc(cliente, estado);
+	}
+	
+	public List<Vehiculo> prepararColeccion() throws ParseException{
+		String csv = "/Users/ryane/Documents/vehiculos.csv";
+
+		List<Vehiculo> coleccion = new ArrayList<Vehiculo>();
+		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+		Calendar cal = Calendar.getInstance();
+
+		BufferedReader br = null;
+		String line = "";
+		String cvsSplitBy = ",";
+		try{
+			br = new BufferedReader(new FileReader(csv));
+			while ((line = br.readLine()) != null){
+				String[] vStr = line.split(cvsSplitBy);
+				Vehiculo v = new Vehiculo();
+				v.setCvehiculo(Integer.parseInt(vStr[0]));
+				v.setSmarca(vStr[1]);
+				v.setSmodelo(vStr[2]);
+				v.setSchassis(vStr[3]);
+				cal.setTime(sdf.parse(vStr[4]));
+				v.setFcompra(cal);
+				v.setBestado(vStr[5].equals("t") ? true : false);
+				v.setCcliente(Integer.parseInt(vStr[6]));
+
+				coleccion.add(v);
+
+			}
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		} finally {
+			if(br != null) {
+				try {
+					br.close();
+				} catch(IOException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+
+		return coleccion;
+	}
+	
+	@Override
+	public int[][] cargaMasiva() throws ParseException {
+		List<Vehiculo> vehiculos = prepararColeccion();
+		int [][] cantidad = clienteDao.batchInsertVehiculos(vehiculos);
+		return cantidad;
+	}
+	
 }
